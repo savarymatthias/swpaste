@@ -11,3 +11,39 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum MonsterSource {
+  MANUAL
+  IMPORT
+}
+
+model Paste {
+  id            String   @id              // identifiant aléatoire court, ex. "k3x9Qa2m"
+  editTokenHash String                    // seulement le hash du jeton, jamais le jeton lui-même
+  title         String?  @db.VarChar(80)
+  description   String?  @db.VarChar(2000)
+  location      String?  @db.VarChar(80)  // endroit où jouer la team
+  context       String?                   // contexte global (import)
+  hidden        Boolean  @default(false)  // masqué après signalement
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastViewedAt  DateTime?                 // pour une éventuelle purge future
+  monsters      PasteMonster[]
+}
+
+model PasteMonster {
+  id         Int           @id @default(autoincrement())
+  pasteId    String
+  paste      Paste         @relation(fields: [pasteId], references: [id], onDelete: Cascade)
+  position   Int                          // 0 à 5, ordre d'affichage
+  source     MonsterSource
+  monsterId  Int                          // unit_master_id du jeu
+  context    String?                      // contexte propre (import)
+  sets       Json                         // ex. [{ "setId": 3, "count": 4 }, { "setId": 1, "count": 2 }]
+  stats      Json                         // { hp, atk, def, spd, critRate, critDmg, res, acc }
+  mainStats  Json?                        // stats principales des slots 2/4/6
+  runes      Json?                        // détail des runes, import seulement
+  artifacts  Json?
+
+  @@unique([pasteId, position])
+}
